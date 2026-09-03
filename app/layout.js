@@ -17,7 +17,7 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "The Reading Room — Ebooks",
+  title: "The Quiet Shelf — Ebooks",
   description: "A small, curated shelf of ebooks."
 };
 
