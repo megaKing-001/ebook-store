@@ -7,6 +7,7 @@ const TYPE_VERB = { ebook: "Read", video: "Watch", audio: "Listen" };
 export default function LibraryPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [items, setItems] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -48,6 +49,12 @@ export default function LibraryPage() {
           <a href="/admin/add-book" className="block bg-burgundy text-parchment px-5 py-3 text-sm text-center">
             Add a product
           </a>
+          <a href="/admin/products" className="block bg-ink text-parchment px-5 py-3 text-sm text-center">
+            Manage products
+          </a>
+          <a href="/admin/sales" className="block bg-ink text-parchment px-5 py-3 text-sm text-center">
+            View sales
+          </a>
           <a href="/admin/free-link" className="block bg-ink text-parchment px-5 py-3 text-sm text-center">
             Generate a free access link
           </a>
@@ -63,7 +70,7 @@ export default function LibraryPage() {
         Enter the email you used at checkout to find everything you&apos;ve bought.
       </p>
 
-      <form onSubmit={handleSubmit} className="space-y-3 mb-8">
+      <form onSubmit={handleSubmit} className="space-y-3 mb-2">
         <input
           type="email"
           required
@@ -72,13 +79,15 @@ export default function LibraryPage() {
           placeholder="you@example.com"
           className="w-full border border-charcoal/25 bg-white px-3 py-2.5 text-sm"
         />
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password (leave blank unless you're the owner)"
-          className="w-full border border-charcoal/25 bg-white px-3 py-2.5 text-sm"
-        />
+        {showPassword && (
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            className="w-full border border-charcoal/25 bg-white px-3 py-2.5 text-sm"
+          />
+        )}
         <button
           type="submit"
           disabled={submitting}
@@ -87,6 +96,17 @@ export default function LibraryPage() {
           {submitting ? "Looking…" : "Continue"}
         </button>
       </form>
+
+      {!showPassword && (
+        <button
+          type="button"
+          onClick={() => setShowPassword(true)}
+          className="text-xs text-stone/60 hover:text-stone underline mb-8"
+        >
+          Site owner?
+        </button>
+      )}
+      {showPassword && <div className="mb-8" />}
 
       {error && <p className="text-sm text-burgundy">{error}</p>}
 
