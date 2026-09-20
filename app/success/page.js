@@ -56,7 +56,12 @@ function SuccessContent() {
             Open now
           </a>
           <p className="text-xs text-stone mt-4">
-            Bookmark this — it opens directly in your browser, nothing to download.
+            Bookmark this — it opens directly in your browser, nothing to download. You can also always find
+            it later in{" "}
+            <Link href="/library" className="underline">
+              My Library
+            </Link>{" "}
+            using this email.
           </p>
         </>
       )}
