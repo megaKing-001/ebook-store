@@ -50,12 +50,14 @@ function SuccessContent() {
             Your copy of <span className="font-serif italic">{result.book.title}</span> is ready.
           </p>
           <a
-            href={result.downloadUrl}
+            href={result.accessUrl}
             className="inline-block bg-burgundy text-parchment px-6 py-3 text-sm hover:bg-burgundy/90 transition-colors"
           >
-            Download PDF
+            Open now
           </a>
-          <p className="text-xs text-stone mt-4">This link expires in 24 hours for your security.</p>
+          <p className="text-xs text-stone mt-4">
+            Bookmark this — it opens directly in your browser, nothing to download.
+          </p>
         </>
       )}
 
