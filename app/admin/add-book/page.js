@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import AdminGate from "@/components/AdminGate";
 
 const emptyForm = {
   slug: "",
@@ -19,7 +20,10 @@ const emptyForm = {
 };
 
 export default function AddBookPage() {
-  const [password, setPassword] = useState("");
+  return <AdminGate>{(password) => <AddBookForm password={password} />}</AdminGate>;
+}
+
+function AddBookForm({ password }) {
   const [form, setForm] = useState(emptyForm);
   const [coverFile, setCoverFile] = useState(null);
   const [mainFile, setMainFile] = useState(null);
@@ -81,16 +85,6 @@ export default function AddBookPage() {
       <p className="text-stone text-sm mb-8">This page is only for you — keep the link and password private.</p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Field label="Admin password">
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full border border-charcoal/25 bg-white px-3 py-2.5 text-sm"
-          />
-        </Field>
-
         <Field label="Product type">
           <select
             value={form.type}
