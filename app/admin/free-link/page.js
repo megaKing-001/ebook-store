@@ -1,9 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import AdminGate from "@/components/AdminGate";
 
 export default function FreeLinkPage() {
-  const [password, setPassword] = useState("");
+  return <AdminGate>{(password) => <FreeLinkForm password={password} />}</AdminGate>;
+}
+
+function FreeLinkForm({ password }) {
   const [slug, setSlug] = useState("");
   const [label, setLabel] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -43,16 +47,6 @@ export default function FreeLinkPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm mb-1.5">Admin password</label>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full border border-charcoal/25 bg-white px-3 py-2.5 text-sm"
-          />
-        </div>
         <div>
           <label className="block text-sm mb-1.5">Book/course slug</label>
           <input
