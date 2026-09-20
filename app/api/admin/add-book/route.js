@@ -14,17 +14,24 @@ export async function POST(request) {
     const title = String(formData.get("title") || "").trim();
     const subtitle = String(formData.get("subtitle") || "").trim();
     const author = String(formData.get("author") || "").trim();
+    const type = String(formData.get("type") || "ebook").trim();
     const priceNaira = Number(formData.get("price"));
+    const compareAtNairaRaw = formData.get("compareAtPrice");
+    const compareAtNaira = compareAtNairaRaw ? Number(compareAtNairaRaw) : null;
     const currency = String(formData.get("currency") || "NGN").trim();
     const description = String(formData.get("description") || "").trim();
     const longDescription = String(formData.get("long_description") || "").trim();
     const pagesRaw = formData.get("pages");
     const pages = pagesRaw ? Number(pagesRaw) : null;
 
-    const coverFile = formData.get("cover");
-    const pdfFile = formData.get("pdf");
+    const bonusType = String(formData.get("bonusType") || "").trim() || null;
+    const bonusTitle = String(formData.get("bonusTitle") || "").trim() || null;
 
-    if (!slug || !title || !author || !priceNaira || !coverFile || !pdfFile) {
+    const coverFile = formData.get("cover");
+    const mainFile = formData.get("mainFile");
+    const bonusFile = formData.get("bonusFile");
+
+    if (!slug || !title || !author || !priceNaira || !coverFile || !mainFile) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
 
@@ -35,40 +42,56 @@ export async function POST(request) {
     const { error: coverError } = await supabaseAdmin.storage
       .from("covers")
       .upload(coverPath, coverFile, { upsert: true, contentType: coverFile.type });
-
     if (coverError) {
       return NextResponse.json({ error: `Cover upload failed: ${coverError.message}` }, { status: 500 });
     }
-
     const { data: coverPublic } = supabaseAdmin.storage.from("covers").getPublicUrl(coverPath);
 
-    const pdfPath = `${slug}.pdf`;
-    const { error: pdfError } = await supabaseAdmin.storage
+    const mainExt = (mainFile.name.split(".").pop() || "bin").toLowerCase();
+    const mainPath = `${slug}.${mainExt}`;
+    const { error: mainError } = await supabaseAdmin.storage
       .from("ebook-files")
-      .upload(pdfPath, pdfFile, { upsert: true, contentType: "application/pdf" });
+      .upload(mainPath, mainFile, { upsert: true, contentType: mainFile.type });
+    if (mainError) {
+      return NextResponse.json({ error: `File upload failed: ${mainError.message}` }, { status: 500 });
+    }
 
-    if (pdfError) {
-      return NextResponse.json({ error: `PDF upload failed: ${pdfError.message}` }, { status: 500 });
+    let bonusFilePath = null;
+    if (bonusFile && bonusType) {
+      const bonusExt = (bonusFile.name.split(".").pop() || "bin").toLowerCase();
+      bonusFilePath = `${slug}-bonus.${bonusExt}`;
+      const { error: bonusError } = await supabaseAdmin.storage
+        .from("ebook-files")
+        .upload(bonusFilePath, bonusFile, { upsert: true, contentType: bonusFile.type });
+      if (bonusError) {
+        return NextResponse.json({ error: `Bonus upload failed: ${bonusError.message}` }, { status: 500 });
+      }
     }
 
     const priceMinorUnits = Math.round(priceNaira * 100);
+    const compareAtMinorUnits = compareAtNaira ? Math.round(compareAtNaira * 100) : null;
 
     const { error: insertError } = await supabaseAdmin.from("ebooks").insert({
       slug,
       title,
       subtitle: subtitle || null,
       author,
+      type,
       price: priceMinorUnits,
+      compare_at_price: compareAtMinorUnits,
       currency,
       cover: coverPublic.publicUrl,
       description: description || null,
       long_description: longDescription || null,
       pages: pages || null,
-      file_path: pdfPath
+      file_path: mainPath,
+      bonus_type: bonusFilePath ? bonusType : null,
+      bonus_file_path: bonusFilePath,
+      bonus_title: bonusFilePath ? bonusTitle : null
     });
 
     if (insertError) {
-      return NextResponse.json({ error: `Could not save the book: ${insertError.message}` }, { status: 500 });
+      return NextResponse.json({ error: `Could not save the product: ${insertError.message}` }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
