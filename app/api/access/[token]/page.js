@@ -46,7 +46,15 @@ export default function AccessPage({ params }) {
           You have complimentary access. This normally costs {data.regularPrice}.
         </p>
       )}
-      {!data.isFree && <div className="mb-6" />}
+      {!data.isFree && (
+        <p className="text-xs text-stone mb-4">
+          Lost this link later? Find it again anytime in{" "}
+          <a href="/library" className="underline">
+            My Library
+          </a>
+          .
+        </p>
+      )}
 
       {data.type === "ebook" && <PdfReader signedUrl={data.signedUrl} watermark={data.watermark} />}
       {data.type === "video" && <ProtectedVideo signedUrl={data.signedUrl} watermark={data.watermark} />}
@@ -112,7 +120,7 @@ function PdfReader({ signedUrl, watermark }) {
         const pdfjsLib = await import("pdfjs-dist/build/pdf");
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
-        const loadingTask = pdfjsLib.getDocument(signedUrl);
+        const loadingTask = pdfjsLib.getDocument({ url: signedUrl, disableRange: true, disableStream: true });
         const pdf = await loadingTask.promise;
         if (cancelled) return;
         setPageCount(pdf.numPages);
