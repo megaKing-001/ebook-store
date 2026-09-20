@@ -30,6 +30,7 @@ export async function POST(request) {
     const coverFile = formData.get("cover");
     const mainFile = formData.get("mainFile");
     const bonusFile = formData.get("bonusFile");
+    const introVideo = formData.get("introVideo");
 
     if (!slug || !title || !author || !priceNaira || !coverFile || !mainFile) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
@@ -68,6 +69,20 @@ export async function POST(request) {
       }
     }
 
+    let introVideoUrl = null;
+    if (introVideo && introVideo.size > 0) {
+      const introExt = (introVideo.name.split(".").pop() || "mp4").toLowerCase();
+      const introPath = `${slug}-intro.${introExt}`;
+      const { error: introError } = await supabaseAdmin.storage
+        .from("covers")
+        .upload(introPath, introVideo, { upsert: true, contentType: introVideo.type });
+      if (introError) {
+        return NextResponse.json({ error: `Intro video upload failed: ${introError.message}` }, { status: 500 });
+      }
+      const { data: introPublic } = supabaseAdmin.storage.from("covers").getPublicUrl(introPath);
+      introVideoUrl = introPublic.publicUrl;
+    }
+
     const priceMinorUnits = Math.round(priceNaira * 100);
     const compareAtMinorUnits = compareAtNaira ? Math.round(compareAtNaira * 100) : null;
 
@@ -87,7 +102,8 @@ export async function POST(request) {
       file_path: mainPath,
       bonus_type: bonusFilePath ? bonusType : null,
       bonus_file_path: bonusFilePath,
-      bonus_title: bonusFilePath ? bonusTitle : null
+      bonus_title: bonusFilePath ? bonusTitle : null,
+      intro_video_path: introVideoUrl
     });
 
     if (insertError) {
