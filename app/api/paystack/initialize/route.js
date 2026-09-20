@@ -4,7 +4,7 @@ import { initializeTransaction } from "@/lib/paystack";
 
 export async function POST(request) {
   try {
-    const { slug, email } = await request.json();
+    const { slug, email, phone } = await request.json();
 
     if (!slug || !email) {
       return NextResponse.json({ error: "Missing slug or email." }, { status: 400 });
@@ -24,6 +24,7 @@ export async function POST(request) {
       amount: book.price,
       currency: book.currency,
       slug: book.slug,
+      phone,
       callbackUrl: `${origin}/success`
     });
 
