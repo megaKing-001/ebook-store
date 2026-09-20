@@ -46,6 +46,15 @@ export default async function ProductPage({ params }) {
           {book.type !== "ebook" && book.pages ? ` · ${book.pages} min` : ""}
         </p>
 
+        {book.intro_video_path && (
+          <video
+            src={book.intro_video_path}
+            controls
+            className="w-full mt-6 bg-black"
+            preload="metadata"
+          />
+        )}
+
         <p className="mt-6 max-w-prose leading-relaxed text-charcoal/85">{book.long_description}</p>
 
         <div className="mt-8 flex items-center gap-6">
