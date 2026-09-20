@@ -28,6 +28,7 @@ function AddBookForm({ password }) {
   const [coverFile, setCoverFile] = useState(null);
   const [mainFile, setMainFile] = useState(null);
   const [bonusFile, setBonusFile] = useState(null);
+  const [introVideo, setIntroVideo] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
 
@@ -56,6 +57,7 @@ function AddBookForm({ password }) {
       body.append("cover", coverFile);
       body.append("mainFile", mainFile);
       if (bonusFile) body.append("bonusFile", bonusFile);
+      if (introVideo) body.append("introVideo", introVideo);
 
       const res = await fetch("/api/admin/add-book", { method: "POST", body });
       const data = await res.json();
@@ -67,6 +69,7 @@ function AddBookForm({ password }) {
       setCoverFile(null);
       setMainFile(null);
       setBonusFile(null);
+      setIntroVideo(null);
       e.target.reset();
     } catch (err) {
       setMessage({ type: "error", text: err.message });
@@ -180,6 +183,15 @@ function AddBookForm({ password }) {
             value={form.long_description}
             onChange={(e) => updateField("long_description", e.target.value)}
             className="w-full border border-charcoal/25 bg-white px-3 py-2.5 text-sm"
+          />
+        </Field>
+
+        <Field label="Short intro video (optional — plays at the top of the product page, visible to everyone)">
+          <input
+            type="file"
+            accept="video/*"
+            onChange={(e) => setIntroVideo(e.target.files?.[0] || null)}
+            className="w-full text-sm"
           />
         </Field>
 
