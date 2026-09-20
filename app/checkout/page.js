@@ -12,6 +12,7 @@ function CheckoutForm() {
   const [book, setBook] = useState(null);
   const [loadingBook, setLoadingBook] = useState(true);
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -52,7 +53,7 @@ function CheckoutForm() {
       const res = await fetch("/api/paystack/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug: book.slug, email })
+        body: JSON.stringify({ slug: book.slug, email, phone })
       });
       const data = await res.json();
 
@@ -91,7 +92,22 @@ function CheckoutForm() {
             placeholder="you@example.com"
             className="w-full border border-charcoal/25 bg-white px-3 py-2.5 text-sm"
           />
-          <p className="text-xs text-stone mt-1.5">Your download link will be tied to this address.</p>
+          <p className="text-xs text-stone mt-1.5">Your access link will be tied to this address.</p>
+        </div>
+
+        <div>
+          <label htmlFor="phone" className="block text-sm mb-1.5">
+            Phone number
+          </label>
+          <input
+            id="phone"
+            type="tel"
+            required
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="080..."
+            className="w-full border border-charcoal/25 bg-white px-3 py-2.5 text-sm"
+          />
         </div>
 
         {error && <p className="text-sm text-burgundy">{error}</p>}
