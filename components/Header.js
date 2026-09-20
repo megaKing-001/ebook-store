@@ -7,12 +7,15 @@ export default function Header() {
         <Link href="/" className="font-serif text-2xl tracking-tight">
           The Quiet Shelf
         </Link>
-        <nav className="flex items-center gap-8 text-sm">
+        <nav className="flex items-center gap-6 md:gap-8 text-sm">
           <Link href="/" className="hover:text-brassLight transition-colors">
             Home
           </Link>
           <Link href="/shop" className="hover:text-brassLight transition-colors">
             Shop
+          </Link>
+          <Link href="/library" className="hover:text-brassLight transition-colors">
+            My Library
           </Link>
         </nav>
       </div>
