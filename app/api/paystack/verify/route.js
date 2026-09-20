@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { verifyTransaction } from "@/lib/paystack";
-
-const DOWNLOAD_LINK_TTL_SECONDS = 60 * 60 * 24;
+import { createAccessToken } from "@/lib/accessToken";
 
 export async function GET(request) {
   try {
@@ -35,6 +34,7 @@ export async function GET(request) {
     }
 
     const email = transaction.customer?.email || "";
+    const phone = transaction.metadata?.phone || "";
 
     await supabaseAdmin
       .from("orders")
@@ -43,6 +43,7 @@ export async function GET(request) {
           reference,
           slug: book.slug,
           email,
+          phone,
           amount: transaction.amount,
           currency: transaction.currency,
           status: "success"
@@ -50,21 +51,12 @@ export async function GET(request) {
         { onConflict: "reference" }
       );
 
-    const { data: signed, error: signError } = await supabaseAdmin.storage
-      .from("ebook-files")
-      .createSignedUrl(book.file_path, DOWNLOAD_LINK_TTL_SECONDS);
-
-    if (signError || !signed) {
-      return NextResponse.json(
-        { error: `Payment succeeded, but the file couldn't be found in storage: ${book.file_path}` },
-        { status: 500 }
-      );
-    }
+    const accessToken = createAccessToken({ slug: book.slug, kind: "paid", watermark: email, ttlMinutes: null });
 
     return NextResponse.json({
       status: "success",
       book: { title: book.title, slug: book.slug },
-      downloadUrl: signed.signedUrl
+      accessUrl: `/access/${accessToken}`
     });
   } catch (err) {
     console.error(err);
