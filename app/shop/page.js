@@ -1,8 +1,9 @@
 import { supabase } from "@/lib/supabaseClient";
 import BookCard from "@/components/BookCard";
+import BackButton from "@/components/BackButton";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Shop — The Reading Room" };
+export const metadata = { title: "Shop — The Quiet Shelf" };
 
 export default async function ShopPage() {
   const { data: ebooks, error } = await supabase
@@ -20,6 +21,7 @@ export default async function ShopPage() {
 
   return (
     <section className="max-w-6xl mx-auto px-6 md:px-10 py-16">
+      <BackButton fallbackHref="/" />
       <h1 className="font-serif text-3xl mb-2">Shop</h1>
       <p className="text-stone mb-10">{ebooks.length} titles, and counting.</p>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-10">
