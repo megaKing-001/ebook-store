@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import BackButton from "@/components/BackButton";
 
 const TYPE_VERB = { ebook: "Read", video: "Watch", audio: "Listen" };
 
@@ -34,6 +35,7 @@ export default function LibraryPage() {
 
   return (
     <div className="max-w-md mx-auto px-6 py-16">
+      <BackButton fallbackHref="/" />
       <h1 className="font-serif text-2xl mb-1">My Library</h1>
       <p className="text-stone text-sm mb-8">
         Enter the email you used at checkout to find everything you&apos;ve bought.
