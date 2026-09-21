@@ -40,16 +40,22 @@ function ProductsList({ password }) {
       {items && items.length > 0 && (
         <ul className="space-y-2">
           {items.map((item) => (
-            <li key={item.slug}>
+            <li key={item.slug} className="flex items-center gap-2">
               <a
                 href={`/admin/products/${item.slug}/edit`}
-                className="flex items-center justify-between border border-charcoal/15 px-4 py-3 hover:bg-parchmentDark transition-colors"
+                className="flex-1 flex items-center justify-between border border-charcoal/15 px-4 py-3 hover:bg-parchmentDark transition-colors"
               >
                 <span>
                   <span className="font-serif">{item.title}</span>
                   <span className="text-xs uppercase tracking-wide text-brass ml-2">{item.type}</span>
                 </span>
                 <span className="text-sm text-burgundy">{formatPrice(item.price, item.currency)}</span>
+              </a>
+              <a
+                href={`/admin/products/${item.slug}/modules`}
+                className="text-xs border border-charcoal/15 px-3 py-3 hover:bg-parchmentDark transition-colors"
+              >
+                Modules
               </a>
             </li>
           ))}
