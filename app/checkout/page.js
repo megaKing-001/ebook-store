@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { formatPrice } from "@/lib/format";
+import BackButton from "@/components/BackButton";
 
 function CheckoutForm() {
   const searchParams = useSearchParams();
@@ -77,6 +78,7 @@ function CheckoutForm() {
 
   return (
     <div className="max-w-md mx-auto px-6 py-20">
+      <BackButton fallbackHref={`/product/${book.slug}`} />
       <h1 className="font-serif text-2xl mb-1">Checkout</h1>
       <p className="text-stone text-sm mb-8">You&apos;re about to purchase:</p>
 
