@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import BackButton from "@/components/BackButton";
 
 const TYPE_VERB = { ebook: "Read", video: "Watch", audio: "Listen" };
+const STORAGE_KEY = "quietshelf_library_email";
 
 export default function LibraryPage() {
   const [email, setEmail] = useState("");
@@ -11,8 +12,7 @@ export default function LibraryPage() {
   const [items, setItems] = useState(null);
   const [error, setError] = useState("");
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  const lookup = useCallback(async (lookupEmail) => {
     setError("");
     setItems(null);
     setSubmitting(true);
@@ -21,16 +21,50 @@ export default function LibraryPage() {
       const res = await fetch("/api/library", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email: lookupEmail })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong.");
       setItems(data.items);
+      try {
+        window.localStorage.setItem(STORAGE_KEY, lookupEmail);
+      } catch {
+        // localStorage unavailable — non-fatal, just means it won't be remembered
+      }
     } catch (err) {
       setError(err.message);
     } finally {
       setSubmitting(false);
     }
+  }, []);
+
+  useEffect(() => {
+    let remembered = "";
+    try {
+      remembered = window.localStorage.getItem(STORAGE_KEY) || "";
+    } catch {
+      remembered = "";
+    }
+    if (remembered) {
+      setEmail(remembered);
+      lookup(remembered);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    lookup(email);
+  }
+
+  function handleForget() {
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+    setEmail("");
+    setItems(null);
   }
 
   return (
@@ -41,7 +75,7 @@ export default function LibraryPage() {
         Enter the email you used at checkout to find everything you&apos;ve bought.
       </p>
 
-      <form onSubmit={handleSubmit} className="flex gap-2 mb-8">
+      <form onSubmit={handleSubmit} className="flex gap-2 mb-2">
         <input
           type="email"
           required
@@ -58,6 +92,13 @@ export default function LibraryPage() {
           {submitting ? "Looking…" : "Find"}
         </button>
       </form>
+
+      {items && (
+        <button type="button" onClick={handleForget} className="text-xs text-stone/60 hover:text-stone underline mb-6">
+          Not you? Forget this email on this device
+        </button>
+      )}
+      {!items && <div className="mb-6" />}
 
       {error && <p className="text-sm text-burgundy">{error}</p>}
 
