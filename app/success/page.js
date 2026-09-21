@@ -41,6 +41,12 @@ function SuccessContent() {
 
   return (
     <div className="max-w-md mx-auto px-6 py-24 text-center">
+      <div className="text-left">
+        <Link href="/shop" className="text-sm text-stone hover:text-charcoal transition-colors">
+          <span aria-hidden="true">‹</span> Back to shop
+        </Link>
+      </div>
+      <div className="mt-6">
       {state === "verifying" && <p className="text-stone">Confirming your payment…</p>}
 
       {state === "success" && result && (
@@ -84,6 +90,7 @@ function SuccessContent() {
           </Link>
         </>
       )}
+      </div>
     </div>
   );
 }
