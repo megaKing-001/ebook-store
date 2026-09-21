@@ -15,6 +15,7 @@ function CheckoutForm() {
   const [phone, setPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [alreadyOwned, setAlreadyOwned] = useState(null);
 
   useEffect(() => {
     if (!slug) {
@@ -61,6 +62,12 @@ function CheckoutForm() {
         throw new Error(data.error || "Something went wrong starting checkout.");
       }
 
+      if (data.alreadyOwned) {
+        setAlreadyOwned({ accessUrl: data.accessUrl });
+        setSubmitting(false);
+        return;
+      }
+
       window.location.href = data.authorizationUrl;
     } catch (err) {
       setError(err.message);
@@ -78,7 +85,18 @@ function CheckoutForm() {
         <span className="text-burgundy text-sm">{formatPrice(book.price, book.currency)}</span>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      {alreadyOwned ? (
+        <div className="border border-brass/40 bg-parchmentDark px-4 py-4 text-center">
+          <p className="text-sm mb-3">You already own this — no need to pay again.</p>
+          <a
+            href={alreadyOwned.accessUrl}
+            className="inline-block bg-burgundy text-parchment px-6 py-3 text-sm hover:bg-burgundy/90 transition-colors"
+          >
+            Open now
+          </a>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm mb-1.5">
             Email address
@@ -120,6 +138,7 @@ function CheckoutForm() {
           {submitting ? "Redirecting to Paystack…" : `Pay ${formatPrice(book.price, book.currency)}`}
         </button>
       </form>
+      )}
     </div>
   );
 }
