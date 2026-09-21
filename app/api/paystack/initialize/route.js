@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { initializeTransaction } from "@/lib/paystack";
+import { createAccessToken } from "@/lib/accessToken";
 
 export async function POST(request) {
   try {
@@ -15,6 +16,20 @@ export async function POST(request) {
 
     if (error || !book) {
       return NextResponse.json({ error: "Unknown ebook." }, { status: 404 });
+    }
+
+    const { data: existingOrder } = await supabaseAdmin
+      .from("orders")
+      .select("email")
+      .eq("slug", slug)
+      .ilike("email", email.trim())
+      .eq("status", "success")
+      .limit(1)
+      .maybeSingle();
+
+    if (existingOrder) {
+      const accessToken = createAccessToken({ slug: book.slug, kind: "paid", watermark: existingOrder.email, ttlMinutes: null });
+      return NextResponse.json({ alreadyOwned: true, accessUrl: `/access/${accessToken}` });
     }
 
     const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL;
