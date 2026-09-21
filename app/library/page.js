@@ -6,61 +6,30 @@ const TYPE_VERB = { ebook: "Read", video: "Watch", audio: "Listen" };
 
 export default function LibraryPage() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [items, setItems] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     setItems(null);
-    setIsAdmin(false);
     setSubmitting(true);
 
     try {
       const res = await fetch("/api/library", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong.");
-
-      if (data.isAdmin) {
-        setIsAdmin(true);
-      } else {
-        setItems(data.items);
-      }
+      setItems(data.items);
     } catch (err) {
       setError(err.message);
     } finally {
       setSubmitting(false);
     }
-  }
-
-  if (isAdmin) {
-    return (
-      <div className="max-w-md mx-auto px-6 py-16">
-        <h1 className="font-serif text-2xl mb-6">Admin tools</h1>
-        <div className="space-y-3">
-          <a href="/admin/add-book" className="block bg-burgundy text-parchment px-5 py-3 text-sm text-center">
-            Add a product
-          </a>
-          <a href="/admin/products" className="block bg-ink text-parchment px-5 py-3 text-sm text-center">
-            Manage products
-          </a>
-          <a href="/admin/sales" className="block bg-ink text-parchment px-5 py-3 text-sm text-center">
-            View sales
-          </a>
-          <a href="/admin/free-link" className="block bg-ink text-parchment px-5 py-3 text-sm text-center">
-            Generate a free access link
-          </a>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -70,43 +39,23 @@ export default function LibraryPage() {
         Enter the email you used at checkout to find everything you&apos;ve bought.
       </p>
 
-      <form onSubmit={handleSubmit} className="space-y-3 mb-2">
+      <form onSubmit={handleSubmit} className="flex gap-2 mb-8">
         <input
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
-          className="w-full border border-charcoal/25 bg-white px-3 py-2.5 text-sm"
+          className="flex-1 border border-charcoal/25 bg-white px-3 py-2.5 text-sm"
         />
-        {showPassword && (
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            className="w-full border border-charcoal/25 bg-white px-3 py-2.5 text-sm"
-          />
-        )}
         <button
           type="submit"
           disabled={submitting}
-          className="w-full bg-burgundy text-parchment px-5 py-2.5 text-sm hover:bg-burgundy/90 transition-colors disabled:opacity-60"
+          className="bg-burgundy text-parchment px-5 py-2.5 text-sm hover:bg-burgundy/90 transition-colors disabled:opacity-60"
         >
-          {submitting ? "Looking…" : "Continue"}
+          {submitting ? "Looking…" : "Find"}
         </button>
       </form>
-
-      {!showPassword && (
-        <button
-          type="button"
-          onClick={() => setShowPassword(true)}
-          className="text-xs text-stone/60 hover:text-stone underline mb-8"
-        >
-          Site owner?
-        </button>
-      )}
-      {showPassword && <div className="mb-8" />}
 
       {error && <p className="text-sm text-burgundy">{error}</p>}
 
