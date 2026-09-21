@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { formatPrice } from "@/lib/format";
+import BackButton from "@/components/BackButton";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,9 @@ export default async function ProductPage({ params }) {
 
   return (
     <section className="max-w-6xl mx-auto px-6 md:px-10 py-16 grid md:grid-cols-[0.8fr_1.2fr] gap-12">
+      <div className="md:col-span-2">
+        <BackButton fallbackHref="/shop" />
+      </div>
       <div className="relative aspect-[2/3] max-w-sm w-full">
         <Image
           src={book.cover}
