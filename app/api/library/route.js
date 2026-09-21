@@ -4,22 +4,11 @@ import { createAccessToken } from "@/lib/accessToken";
 
 export async function POST(request) {
   try {
-    const { email, password } = await request.json();
+    const { email } = await request.json();
     const cleanEmail = String(email || "").trim().toLowerCase();
 
     if (!cleanEmail) {
       return NextResponse.json({ error: "Enter the email you paid with." }, { status: 400 });
-    }
-
-    const adminEmail = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
-    if (
-      password &&
-      adminEmail &&
-      cleanEmail === adminEmail &&
-      process.env.ADMIN_PASSWORD &&
-      password === process.env.ADMIN_PASSWORD
-    ) {
-      return NextResponse.json({ isAdmin: true });
     }
 
     const supabaseAdmin = getSupabaseAdmin();
