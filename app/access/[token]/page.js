@@ -9,7 +9,7 @@ export default function AccessPage({ params }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`/api/access/${params.token}`)
+    fetch(`/api/access/${params.token}`, { cache: "no-store" })
       .then(async (res) => {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || "Could not load this content.");
@@ -61,9 +61,27 @@ export default function AccessPage({ params }) {
         </p>
       )}
 
-      {data.type === "ebook" && <PdfReader signedUrl={data.signedUrl} watermark={data.watermark} />}
-      {data.type === "video" && <ProtectedVideo signedUrl={data.signedUrl} watermark={data.watermark} />}
-      {data.type === "audio" && <ProtectedAudio signedUrl={data.signedUrl} />}
+      {data.modules ? (
+        <ul className="space-y-2 mt-2">
+          {data.modules.map((mod, i) => (
+            <li key={i}>
+              <a
+                href={mod.accessUrl}
+                className="flex items-center justify-between border border-charcoal/15 px-4 py-3 hover:bg-parchmentDark transition-colors"
+              >
+                <span>{mod.title}</span>
+                <span className="text-xs uppercase tracking-wide text-brass">{mod.type}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <>
+          {data.type === "ebook" && <PdfReader signedUrl={data.signedUrl} watermark={data.watermark} />}
+          {data.type === "video" && <ProtectedVideo signedUrl={data.signedUrl} watermark={data.watermark} />}
+          {data.type === "audio" && <ProtectedAudio signedUrl={data.signedUrl} />}
+        </>
+      )}
 
       {data.bonusUrl && (
         <div className="mt-10 rule pt-6">
