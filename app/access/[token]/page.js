@@ -113,14 +113,17 @@ function ProtectedAudio({ signedUrl }) {
 }
 
 function PdfReader({ signedUrl, watermark }) {
-  const containerRef = useRef(null);
-  const [pageCount, setPageCount] = useState(null);
+  const canvasRef = useRef(null);
+  const pdfRef = useRef(null);
+  const [numPages, setNumPages] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
   const [renderError, setRenderError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
 
-    async function render() {
+    async function load() {
       try {
         const pdfjsLib = await import("pdfjs-dist/build/pdf");
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
@@ -128,52 +131,93 @@ function PdfReader({ signedUrl, watermark }) {
         const loadingTask = pdfjsLib.getDocument({ url: signedUrl, disableRange: true, disableStream: true });
         const pdf = await loadingTask.promise;
         if (cancelled) return;
-        setPageCount(pdf.numPages);
 
-        const container = containerRef.current;
-        container.innerHTML = "";
-
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-          const page = await pdf.getPage(pageNum);
-          const viewport = page.getViewport({ scale: 1.4 });
-
-          const canvas = document.createElement("canvas");
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-          canvas.className = "w-full h-auto shadow-sm mb-4";
-          canvas.oncontextmenu = (e) => e.preventDefault();
-
-          const ctx = canvas.getContext("2d");
-          await page.render({ canvasContext: ctx, viewport }).promise;
-
-          if (watermark) stampWatermark(ctx, canvas.width, canvas.height, watermark);
-
-          if (cancelled) return;
-          container.appendChild(canvas);
-        }
+        pdfRef.current = pdf;
+        setNumPages(pdf.numPages);
+        setLoading(false);
       } catch (err) {
-        if (!cancelled) setRenderError(err.message || "Could not display this ebook.");
+        if (!cancelled) {
+          setRenderError(err.message || "Could not display this ebook.");
+          setLoading(false);
+        }
       }
     }
 
-    render();
+    load();
     return () => {
       cancelled = true;
     };
-  }, [signedUrl, watermark]);
+  }, [signedUrl]);
+
+  useEffect(() => {
+    if (!pdfRef.current) return;
+    let cancelled = false;
+
+    async function renderPage() {
+      try {
+        const page = await pdfRef.current.getPage(currentPage);
+        const viewport = page.getViewport({ scale: 1.6 });
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext("2d");
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        if (watermark) stampWatermark(ctx, canvas.width, canvas.height, watermark);
+      } catch (err) {
+        if (!cancelled) setRenderError(err.message || "Could not display this page.");
+      }
+    }
+
+    renderPage();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPage, numPages, watermark]);
+
+  function goPrev() {
+    setCurrentPage((p) => Math.max(1, p - 1));
+  }
+  function goNext() {
+    setCurrentPage((p) => Math.min(numPages || p, p + 1));
+  }
 
   return (
     <div>
-      {pageCount && <p className="text-xs text-stone mb-3">{pageCount} pages</p>}
+      {loading && <p className="text-stone text-sm">Loading…</p>}
       {renderError && <p className="text-sm text-burgundy">{renderError}</p>}
-      <div
-        ref={containerRef}
-        className="select-none"
-        style={{ userSelect: "none" }}
-        onContextMenu={(e) => e.preventDefault()}
-      >
-        <p className="text-stone text-sm">Loading pages…</p>
+
+      <div className="select-none" style={{ userSelect: "none" }} onContextMenu={(e) => e.preventDefault()}>
+        <canvas
+          ref={canvasRef}
+          key={currentPage}
+          className="w-full h-auto shadow-sm mb-4 transition-opacity duration-300"
+        />
       </div>
+
+      {numPages && (
+        <div className="flex items-center justify-between mt-2">
+          <button
+            onClick={goPrev}
+            disabled={currentPage <= 1}
+            className="px-4 py-2 text-sm border border-charcoal/25 disabled:opacity-40"
+          >
+            ‹ Prev
+          </button>
+          <span className="text-xs text-stone">
+            Page {currentPage} of {numPages}
+          </span>
+          <button
+            onClick={goNext}
+            disabled={currentPage >= numPages}
+            className="px-4 py-2 text-sm border border-charcoal/25 disabled:opacity-40"
+          >
+            Next ›
+          </button>
+        </div>
+      )}
     </div>
   );
 }
