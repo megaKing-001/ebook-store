@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { verifyAccessToken, createAccessToken } from "@/lib/accessToken";
 import { formatPrice } from "@/lib/format";
 
-const FILE_LINK_TTL_SECONDS = 60 * 5;
+const FILE_LINK_TTL_SECONDS = 60 * 60;
 
 export async function GET(request, { params }) {
   const payload = verifyAccessToken(params.token);
