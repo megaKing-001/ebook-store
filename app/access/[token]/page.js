@@ -16,19 +16,15 @@ export default function AccessPage({ params }) {
 
   const loadAccess = useCallback(async () => {
     try {
-      const res = await fetch(
-        `/api/access/${params.token}`,
-        {
-          cache: "no-store",
-        }
-      );
+      const res = await fetch(`/api/access/${params.token}`, {
+        cache: "no-store",
+      });
 
       const json = await res.json();
 
       if (!res.ok) {
         throw new Error(
-          json.error ||
-            "Could not load this content."
+          json.error || "Could not load this content."
         );
       }
 
@@ -39,8 +35,7 @@ export default function AccessPage({ params }) {
       return json;
     } catch (err) {
       setError(
-        err.message ||
-          "Could not load this content."
+        err.message || "Could not load this content."
       );
       setState("error");
       throw err;
@@ -98,15 +93,14 @@ export default function AccessPage({ params }) {
 
       {data.isFree && data.regularPrice && (
         <p className="mb-6 text-sm text-brass">
-          You have complimentary access. This
-          normally costs {data.regularPrice}.
+          You have complimentary access. This normally
+          costs {data.regularPrice}.
         </p>
       )}
 
       {!data.isFree && (
         <p className="mb-4 text-xs text-stone">
-          Lost this link later? Find it again
-          anytime in{" "}
+          Lost this link later? Find it again anytime in{" "}
           <a
             href="/library"
             className="underline"
@@ -222,7 +216,7 @@ function ProtectedVideo({
 
       setCurrentUrl(json.signedUrl);
       setRefreshing(false);
-    } catch (err) {
+    } catch {
       setRefreshing(false);
     }
   }, [accessToken]);
@@ -311,7 +305,7 @@ function ProtectedAudio({
 
       setCurrentUrl(json.signedUrl);
       setRefreshing(false);
-    } catch (err) {
+    } catch {
       setRefreshing(false);
     }
   }, [accessToken]);
@@ -357,7 +351,8 @@ function PdfReader({
 }) {
   const canvasRef = useRef(null);
   const pdfRef = useRef(null);
-
+  const loadingTaskRef = useRef(null);
+  const mountedRef = useRef(true);
   const refreshAttemptedRef = useRef(false);
 
   const [currentSignedUrl, setCurrentSignedUrl] =
@@ -378,19 +373,55 @@ function PdfReader({
   const [renderError, setRenderError] =
     useState("");
 
+  /*
+   * Cleanup when the reader is removed.
+   */
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+
+      if (loadingTaskRef.current) {
+        try {
+          loadingTaskRef.current.destroy();
+        } catch {
+          // Ignore cleanup errors.
+        }
+
+        loadingTaskRef.current = null;
+      }
+
+      if (pdfRef.current) {
+        try {
+          pdfRef.current.destroy();
+        } catch {
+          // Ignore cleanup errors.
+        }
+
+        pdfRef.current = null;
+      }
+    };
+  }, []);
 
   /*
-   * Get a fresh Supabase signed URL.
+   * Request a fresh signed URL.
    */
   const refreshSignedUrl = useCallback(
-    async () => {
-      if (refreshAttemptedRef.current) {
+    async (allowRetry = false) => {
+      if (
+        !allowRetry &&
+        refreshAttemptedRef.current
+      ) {
         return false;
       }
 
       refreshAttemptedRef.current = true;
-      setRefreshing(true);
-      setRenderError("");
+
+      if (mountedRef.current) {
+        setRefreshing(true);
+        setRenderError("");
+      }
 
       try {
         const res = await fetch(
@@ -402,29 +433,44 @@ function PdfReader({
 
         const json = await res.json();
 
-        if (!res.ok || !json.signedUrl) {
+        if (
+          !res.ok ||
+          !json.signedUrl
+        ) {
           throw new Error(
             json.error ||
               "Could not refresh the ebook."
           );
         }
 
+        if (!mountedRef.current) {
+          return false;
+        }
+
+        /*
+         * Replace the URL and force the PDF
+         * loader to start cleanly.
+         */
         setCurrentSignedUrl(
           json.signedUrl
         );
 
+        setCurrentPage(1);
+        setNumPages(null);
         setLoading(true);
         setRefreshing(false);
 
         return true;
       } catch (err) {
-        setRenderError(
-          err.message ||
-            "Could not refresh the ebook."
-        );
+        if (mountedRef.current) {
+          setRenderError(
+            err.message ||
+              "Could not refresh the ebook."
+          );
 
-        setLoading(false);
-        setRefreshing(false);
+          setLoading(false);
+          setRefreshing(false);
+        }
 
         return false;
       }
@@ -432,22 +478,60 @@ function PdfReader({
     [accessToken]
   );
 
-
   /*
-   * Load the PDF.
+   * Load PDF from the current signed URL.
    */
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
+      if (!currentSignedUrl) {
+        setRenderError(
+          "No ebook file was returned."
+        );
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setRenderError("");
+
+      /*
+       * Destroy any previous PDF instance
+       * before loading a new URL.
+       */
+      if (loadingTaskRef.current) {
+        try {
+          await loadingTaskRef.current.destroy();
+        } catch {
+          // Ignore cleanup errors.
+        }
+
+        loadingTaskRef.current = null;
+      }
+
+      if (pdfRef.current) {
+        try {
+          await pdfRef.current.destroy();
+        } catch {
+          // Ignore cleanup errors.
+        }
+
+        pdfRef.current = null;
+      }
 
       try {
         const pdfjsLib =
           await import(
             "pdfjs-dist/build/pdf"
           );
+
+        if (
+          cancelled ||
+          !mountedRef.current
+        ) {
+          return;
+        }
 
         pdfjsLib.GlobalWorkerOptions.workerSrc =
           `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
@@ -459,33 +543,61 @@ function PdfReader({
             disableStream: true,
           });
 
+        loadingTaskRef.current =
+          loadingTask;
+
         const pdf =
           await loadingTask.promise;
 
-        if (cancelled) return;
+        if (
+          cancelled ||
+          !mountedRef.current
+        ) {
+          try {
+            await pdf.destroy();
+          } catch {
+            // Ignore cleanup errors.
+          }
+
+          return;
+        }
 
         pdfRef.current = pdf;
 
         setNumPages(pdf.numPages);
 
+        setCurrentPage((page) =>
+          Math.min(
+            Math.max(page, 1),
+            pdf.numPages
+          )
+        );
+
         setLoading(false);
         setRefreshing(false);
 
         /*
-         * The new URL worked.
-         * Allow another refresh in the future
-         * if another signed URL expires.
+         * The current URL worked.
+         * A future failure is allowed to
+         * trigger another refresh.
          */
         refreshAttemptedRef.current =
           false;
       } catch (err) {
-        if (cancelled) return;
+        if (
+          cancelled ||
+          !mountedRef.current
+        ) {
+          return;
+        }
 
         /*
-         * The signed URL may have expired.
-         * Request one fresh URL and try once more.
+         * Only automatically refresh once
+         * for a failed signed URL.
          */
-        if (!refreshAttemptedRef.current) {
+        if (
+          !refreshAttemptedRef.current
+        ) {
           const refreshed =
             await refreshSignedUrl();
 
@@ -495,12 +607,20 @@ function PdfReader({
         }
 
         setRenderError(
-          err.message ||
+          err?.message ||
             "Could not display this ebook."
         );
 
         setLoading(false);
         setRefreshing(false);
+      } finally {
+        if (
+          loadingTaskRef.current ===
+          loadingTask
+        ) {
+          loadingTaskRef.current =
+            null;
+        }
       }
     }
 
@@ -514,12 +634,17 @@ function PdfReader({
     refreshSignedUrl,
   ]);
 
-
   /*
-   * Render the current PDF page.
+   * Render the selected page.
    */
   useEffect(() => {
-    if (!pdfRef.current) return;
+    if (
+      !pdfRef.current ||
+      !canvasRef.current ||
+      !numPages
+    ) {
+      return;
+    }
 
     let cancelled = false;
 
@@ -527,10 +652,20 @@ function PdfReader({
       try {
         setRenderError("");
 
+        const pdf =
+          pdfRef.current;
+
         const page =
-          await pdfRef.current.getPage(
+          await pdf.getPage(
             currentPage
           );
+
+        if (
+          cancelled ||
+          !mountedRef.current
+        ) {
+          return;
+        }
 
         const viewport =
           page.getViewport({
@@ -542,16 +677,39 @@ function PdfReader({
 
         if (!canvas) return;
 
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
+        canvas.width =
+          viewport.width;
+
+        canvas.height =
+          viewport.height;
 
         const ctx =
           canvas.getContext("2d");
+
+        if (!ctx) {
+          throw new Error(
+            "Could not create the ebook reader canvas."
+          );
+        }
+
+        ctx.clearRect(
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
 
         await page.render({
           canvasContext: ctx,
           viewport,
         }).promise;
+
+        if (
+          cancelled ||
+          !mountedRef.current
+        ) {
+          return;
+        }
 
         if (watermark) {
           stampWatermark(
@@ -562,15 +720,20 @@ function PdfReader({
           );
         }
 
-        if (!cancelled) {
-          setRefreshing(false);
-        }
+        setLoading(false);
+        setRefreshing(false);
       } catch (err) {
-        if (!cancelled) {
+        if (
+          !cancelled &&
+          mountedRef.current
+        ) {
           setRenderError(
-            err.message ||
+            err?.message ||
               "Could not display this page."
           );
+
+          setLoading(false);
+          setRefreshing(false);
         }
       }
     }
@@ -587,33 +750,27 @@ function PdfReader({
     currentSignedUrl,
   ]);
 
-
   function goPrev() {
-    setCurrentPage((p) =>
-      Math.max(1, p - 1)
+    setCurrentPage((page) =>
+      Math.max(1, page - 1)
     );
   }
 
   function goNext() {
-    setCurrentPage((p) =>
+    setCurrentPage((page) =>
       Math.min(
-        numPages || p,
-        p + 1
+        numPages || page,
+        page + 1
       )
     );
   }
 
-
   async function manualRefresh() {
-    /*
-     * Allow a manual retry even if the
-     * automatic refresh has already happened.
-     */
-    refreshAttemptedRef.current = false;
+    refreshAttemptedRef.current =
+      false;
 
-    await refreshSignedUrl();
+    await refreshSignedUrl(true);
   }
-
 
   return (
     <div>
@@ -640,9 +797,12 @@ function PdfReader({
           <button
             type="button"
             onClick={manualRefresh}
-            className="mt-3 rounded-full bg-burgundy px-4 py-2 text-xs font-semibold text-white"
+            disabled={refreshing}
+            className="mt-3 rounded-full bg-burgundy px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
           >
-            Refresh ebook
+            {refreshing
+              ? "Refreshing…"
+              : "Refresh ebook"}
           </button>
         </div>
       )}
