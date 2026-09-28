@@ -485,6 +485,8 @@ function PdfReader({
     let cancelled = false;
 
     async function load() {
+      let loadingTask = null;
+
       if (!currentSignedUrl) {
         setRenderError(
           "No ebook file was returned."
@@ -523,7 +525,7 @@ function PdfReader({
       try {
         const pdfjsLib =
           await import(
-            "pdfjs-dist/build/pdf"
+            "pdfjs-dist/build/pdf.mjs"
           );
 
         if (
@@ -534,9 +536,12 @@ function PdfReader({
         }
 
         pdfjsLib.GlobalWorkerOptions.workerSrc =
-          `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+          new URL(
+            "pdfjs-dist/build/pdf.worker.min.mjs",
+            import.meta.url
+          ).toString();
 
-        const loadingTask =
+        loadingTask =
           pdfjsLib.getDocument({
             url: currentSignedUrl,
             disableRange: true,
