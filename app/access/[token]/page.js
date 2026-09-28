@@ -520,6 +520,12 @@ function PdfReader({
         pdfRef.current = null;
       }
 
+      /*
+       * FIX 1: declared OUTSIDE the try block so the
+       * finally block below can safely read it.
+       */
+      let loadingTask = null;
+
       try {
         const pdfjsLib =
           await import(
@@ -533,10 +539,23 @@ function PdfReader({
           return;
         }
 
-        pdfjsLib.GlobalWorkerOptions.workerSrc =
-          `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+        /*
+         * FIX 2: pick the correct worker file for the
+         * installed pdfjs-dist version (v4+ uses .mjs,
+         * older versions use .js). Loaded from jsDelivr,
+         * which mirrors the npm package exactly.
+         */
+        const major = parseInt(
+          pdfjsLib.version,
+          10
+        );
+        const ext =
+          major >= 4 ? "mjs" : "js";
 
-        const loadingTask =
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.${ext}`;
+
+        loadingTask =
           pdfjsLib.getDocument({
             url: currentSignedUrl,
             disableRange: true,
@@ -615,8 +634,9 @@ function PdfReader({
         setRefreshing(false);
       } finally {
         if (
+          loadingTask &&
           loadingTaskRef.current ===
-          loadingTask
+            loadingTask
         ) {
           loadingTaskRef.current =
             null;
